@@ -3,10 +3,10 @@
 # Interactive VM Assistant - Conversational VM Management
 # Talk to your VMs like you're talking to an AI assistant
 
-VM_CONFIG_DIR="$HOME/.vm-manager"
+VM_CONFIG_DIR="$HOME/.vm-manager/vms"
 VM_CONFIG_FILE="$VM_CONFIG_DIR/vms.conf"
 VM_TEMPLATES_DIR="$VM_CONFIG_DIR/templates"
-VM_ISOS_DIR="$VM_CONFIG_DIR/isos"
+VM_ISOS_DIR="$VM_CONFIG_DIR/../isos"
 SESSION_LOG="$VM_CONFIG_DIR/session.log"
 
 # Colors
@@ -28,6 +28,13 @@ if [ ! -f "$VM_CONFIG_FILE" ]; then
 # VM Configuration - Auto-managed by VM Assistant
 # Format: vm_name:hypervisor:vm_path:memory:cpu_cores:iso_path:status:ip_address
 ubuntu:qemu:/Users/$(whoami)/.vm-manager/vms/ubuntu/ubuntu.qcow2:2048:2::configured:
+tail:qemu:/Users/$(whoami)/.vm-manager/vms/tail/tail.qcow2:2048:2::configured:
+kali:qemu:/Users/$(whoami)/.vm-manager/vms/kali/kali.qcow2:2048:2::configured:
+parrot:qemu:/Users/$(whoami)/.vm-manager/vms/parrot/parrot.qcow2:2048:2::configured:
+qubes:qemu:/Users/$(whoami)/.vm-manager/vms/qubes/qubes.qcow2:2048:2::configured:
+debian:qemu:/Users/$(whoami)/.vm-manager/vms/debian/debian.qcow2:2048:2::configured:
+windows:qemu:/Users/$(whoami)/.vm-manager/vms/windows/windows.qcow2:2048:2::configured:
+centos:qemu:/Users/$(whoami)/.vm-manager/vms/centos/centos.qcow2:2048:2::configured:
 EOF
 fi
 
@@ -105,7 +112,7 @@ process_command() {
     log_interaction "USER: $input"
     
     # Start VM commands
-    if [[ "$input_lower" =~ (start|run|launch|boot).*(ubuntu|debian|windows|centos|vm) ]]; then
+    if [[ "$input_lower" =~ (start|run|launch|boot).*(ubuntu|debian|windows|centos|kali|parrot|tails|qubes|vm) ]]; then
         if [[ "$input_lower" =~ ubuntu ]]; then
             ai_response "I'll start your Ubuntu VM for you!"
             start_vm_ai "ubuntu"
@@ -115,16 +122,46 @@ process_command() {
         elif [[ "$input_lower" =~ windows ]]; then
             ai_response "Launching Windows VM..."
             start_vm_ai "windows"
+        elif [[ "$input_lower" =~ kali ]]; then
+            ai_response "Starting Kali Linux VM..."
+            start_vm_ai "kali"
+        elif [[ "$input_lower" =~ parrot ]]; then
+            ai_response "Launching Parrot Security VM..."
+            start_vm_ai "parrot"
+        elif [[ "$input_lower" =~ tails ]]; then
+            ai_response "Starting Tails VM..."
+            start_vm_ai "tails"
+        elif [[ "$input_lower" =~ qubes ]]; then
+            ai_response "Launching Qubes OS VM..."
+            start_vm_ai "qubes"
         else
             ai_response "Which VM would you like me to start?"
             list_vms_ai
         fi
     
     # Stop VM commands
-    elif [[ "$input_lower" =~ (stop|shutdown|halt|kill).*(ubuntu|debian|windows|all|vm) ]]; then
+    elif [[ "$input_lower" =~ (stop|shutdown|halt|kill).*(ubuntu|debian|windows|kali|parrot|tails|qubes|all|vm) ]]; then
         if [[ "$input_lower" =~ ubuntu ]]; then
             ai_response "Stopping Ubuntu VM..."
             stop_vm_ai "ubuntu"
+        elif [[ "$input_lower" =~ debian ]]; then
+            ai_response "Stopping Debian VM..."
+            stop_vm_ai "debian"
+        elif [[ "$input_lower" =~ windows ]]; then
+            ai_response "Stopping Windows VM..."
+            stop_vm_ai "windows"
+        elif [[ "$input_lower" =~ kali ]]; then
+            ai_response "Stopping Kali Linux VM..."
+            stop_vm_ai "kali"
+        elif [[ "$input_lower" =~ parrot ]]; then
+            ai_response "Stopping Parrot Security VM..."
+            stop_vm_ai "parrot"
+        elif [[ "$input_lower" =~ tails ]]; then
+            ai_response "Stopping Tails VM..."
+            stop_vm_ai "tails"
+        elif [[ "$input_lower" =~ qubes ]]; then
+            ai_response "Stopping Qubes OS VM..."
+            stop_vm_ai "qubes"
         elif [[ "$input_lower" =~ all ]]; then
             ai_response "I'll stop all running VMs for you."
             stop_all_vms_ai
@@ -144,13 +181,25 @@ process_command() {
         check_all_status_ai
     
     # Create/Install commands
-    elif [[ "$input_lower" =~ (create|install|new|make).*(ubuntu|debian|windows|vm) ]]; then
+    elif [[ "$input_lower" =~ (create|install|new|make).*(ubuntu|debian|windows|kali|parrot|tails|qubes|vm) ]]; then
         if [[ "$input_lower" =~ ubuntu ]]; then
             ai_response "I'll help you create a new Ubuntu VM!"
             create_ubuntu_vm_ai
         elif [[ "$input_lower" =~ debian ]]; then
             ai_response "Creating a Debian VM for you..."
             create_debian_vm_ai
+        elif [[ "$input_lower" =~ kali ]]; then
+            ai_response "I'll create a Kali Linux VM for you!"
+            create_kali_vm_ai
+        elif [[ "$input_lower" =~ parrot ]]; then
+            ai_response "Setting up a Parrot Security VM..."
+            create_parrot_vm_ai
+        elif [[ "$input_lower" =~ tails ]]; then
+            ai_response "Creating a Tails VM for you..."
+            create_tails_vm_ai
+        elif [[ "$input_lower" =~ qubes ]]; then
+            ai_response "Setting up a Qubes OS VM..."
+            create_qubes_vm_ai
         else
             ai_response "What type of VM would you like me to create?"
             show_vm_types_ai
@@ -169,6 +218,26 @@ process_command() {
     elif [[ "$input_lower" =~ (system|info|hardware|specs) ]]; then
         ai_response "Let me check your system information..."
         show_system_info_ai
+    
+    # VM Command Builder commands
+    elif [[ "$input_lower" =~ (build|help.*build|command.*build|help.*command) ]]; then
+        ai_response "I'll help you build a command for your VM!"
+        build_vm_command_ai "$input"
+    
+    # Show available VM commands
+    elif [[ "$input_lower" =~ (show.*command|what.*command|list.*command|vm.*command) ]]; then
+        ai_response "Here are some useful commands you can run in your VMs:"
+        show_vm_commands_ai
+    
+    # Execute command on VM
+    elif [[ "$input_lower" =~ (run.*on|execute.*on|command.*on).*(vm|ubuntu|debian|kali|parrot|tails|qubes) ]]; then
+        ai_response "I'll help you execute a command on your VM!"
+        execute_vm_command_ai "$input"
+    
+    # Boot troubleshooting commands
+    elif [[ "$input_lower" =~ (no.*bootable|boot.*error|boot.*fail|no.*boot|bootable.*device|vm.*boot|troubleshoot.*boot) ]]; then
+        ai_response "I see you're having boot issues! Let me help troubleshoot that."
+        troubleshoot_vm_boot_ai
     
     # Exit commands
     elif [[ "$input_lower" =~ (exit|quit|bye|goodbye) ]]; then
@@ -242,6 +311,18 @@ start_vm_ai() {
             if [ -n "$iso_path" ] && [ -f "$iso_path" ]; then
                 qemu_cmd="$qemu_cmd -cdrom \"$iso_path\""
                 ai_response "Mounting ISO: $(basename "$iso_path")"
+            else
+                # Check if this is a new VM without an OS installed
+                if [ ! -s "$vm_path" ] || [ $(stat -f%z "$vm_path" 2>/dev/null || stat -c%s "$vm_path" 2>/dev/null) -lt 1000000 ]; then
+                    ai_response "⚠️  Warning: No ISO attached and VM disk appears empty."
+                    ai_response "This may result in 'no bootable device' error."
+                    echo -e "${YELLOW}Would you like me to download the Ubuntu ISO first? (y/n):${NC}"
+                    read -r download_choice
+                    if [[ "$download_choice" =~ ^[Yy]$ ]]; then
+                        download_ubuntu_iso_ai "$vm_name"
+                        return 0
+                    fi
+                fi
             fi
             
             ai_response "Executing: $qemu_cmd"
@@ -461,16 +542,220 @@ create_debian_vm_ai() {
     create_ubuntu_vm_ai  # For now, use same logic
 }
 
+create_kali_vm_ai() {
+    ai_response "Great! I'll create a new Kali Linux VM for you. Let me ask a few questions:"
+    
+    echo -e "${YELLOW}What should I name this VM? (default: kali):${NC}"
+    read -r vm_name
+    vm_name=${vm_name:-kali}
+    
+    if get_vm_config "$vm_name" >/dev/null; then
+        ai_response "A VM named '$vm_name' already exists. Please choose a different name."
+        return 1
+    fi
+    
+    echo -e "${YELLOW}How much memory (MB)? (default: 4096):${NC}"
+    read -r memory
+    memory=${memory:-4096}
+    
+    echo -e "${YELLOW}How many CPU cores? (default: 2):${NC}"
+    read -r cpu_cores
+    cpu_cores=${cpu_cores:-2}
+    
+    ai_response "Perfect! I'm creating your Kali Linux VM with:"
+    echo -e "  • Name: $vm_name"
+    echo -e "  • Memory: ${memory}MB"
+    echo -e "  • CPU: $cpu_cores cores"
+    echo -e "  • Storage: 25GB"
+    
+    # Create VM directory and disk
+    local vm_dir="$VM_CONFIG_DIR/vms/$vm_name"
+    local disk_path="$vm_dir/$vm_name.qcow2"
+    
+    mkdir -p "$vm_dir"
+    
+    ai_response "Creating virtual disk..."
+    if command -v qemu-img >/dev/null; then
+        qemu-img create -f qcow2 "$disk_path" 25G
+        ai_response "✅ Virtual disk created successfully!"
+    else
+        ai_response "⚠️  QEMU not found. Please install it first: brew install qemu"
+        return 1
+    fi
+    
+    # Add to config
+    echo "$vm_name:qemu:$disk_path:$memory:$cpu_cores::configured:" >> "$VM_CONFIG_FILE"
+    
+    ai_response "✅ VM '$vm_name' created successfully!"
+    
+    ai_response "🚀 Now downloading Kali Linux ISO and starting installation..."
+    download_kali_iso_ai "$vm_name"
+}
+
+create_parrot_vm_ai() {
+    ai_response "Great! I'll create a new Parrot Security VM for you. Let me ask a few questions:"
+    
+    echo -e "${YELLOW}What should I name this VM? (default: parrot):${NC}"
+    read -r vm_name
+    vm_name=${vm_name:-parrot}
+    
+    if get_vm_config "$vm_name" >/dev/null; then
+        ai_response "A VM named '$vm_name' already exists. Please choose a different name."
+        return 1
+    fi
+    
+    echo -e "${YELLOW}How much memory (MB)? (default: 4096):${NC}"
+    read -r memory
+    memory=${memory:-4096}
+    
+    echo -e "${YELLOW}How many CPU cores? (default: 2):${NC}"
+    read -r cpu_cores
+    cpu_cores=${cpu_cores:-2}
+    
+    ai_response "Perfect! I'm creating your Parrot Security VM with:"
+    echo -e "  • Name: $vm_name"
+    echo -e "  • Memory: ${memory}MB"
+    echo -e "  • CPU: $cpu_cores cores"
+    echo -e "  • Storage: 25GB"
+    
+    # Create VM directory and disk
+    local vm_dir="$VM_CONFIG_DIR/vms/$vm_name"
+    local disk_path="$vm_dir/$vm_name.qcow2"
+    
+    mkdir -p "$vm_dir"
+    
+    ai_response "Creating virtual disk..."
+    if command -v qemu-img >/dev/null; then
+        qemu-img create -f qcow2 "$disk_path" 25G
+        ai_response "✅ Virtual disk created successfully!"
+    else
+        ai_response "⚠️  QEMU not found. Please install it first: brew install qemu"
+        return 1
+    fi
+    
+    # Add to config
+    echo "$vm_name:qemu:$disk_path:$memory:$cpu_cores::configured:" >> "$VM_CONFIG_FILE"
+    
+    ai_response "✅ VM '$vm_name' created successfully!"
+    
+    ai_response "🚀 Now downloading Parrot Security ISO and starting installation..."
+    download_parrot_iso_ai "$vm_name"
+}
+
+create_tails_vm_ai() {
+    ai_response "Great! I'll create a new Tails VM for you. Let me ask a few questions:"
+    
+    echo -e "${YELLOW}What should I name this VM? (default: tails):${NC}"
+    read -r vm_name
+    vm_name=${vm_name:-tails}
+    
+    if get_vm_config "$vm_name" >/dev/null; then
+        ai_response "A VM named '$vm_name' already exists. Please choose a different name."
+        return 1
+    fi
+    
+    echo -e "${YELLOW}How much memory (MB)? (default: 2048):${NC}"
+    read -r memory
+    memory=${memory:-2048}
+    
+    echo -e "${YELLOW}How many CPU cores? (default: 2):${NC}"
+    read -r cpu_cores
+    cpu_cores=${cpu_cores:-2}
+    
+    ai_response "Perfect! I'm creating your Tails VM with:"
+    echo -e "  • Name: $vm_name"
+    echo -e "  • Memory: ${memory}MB"
+    echo -e "  • CPU: $cpu_cores cores"
+    echo -e "  • Storage: 8GB (Tails is typically run as a live system)"
+    
+    # Create VM directory and disk
+    local vm_dir="$VM_CONFIG_DIR/vms/$vm_name"
+    local disk_path="$vm_dir/$vm_name.qcow2"
+    
+    mkdir -p "$vm_dir"
+    
+    ai_response "Creating virtual disk..."
+    if command -v qemu-img >/dev/null; then
+        qemu-img create -f qcow2 "$disk_path" 8G
+        ai_response "✅ Virtual disk created successfully!"
+    else
+        ai_response "⚠️  QEMU not found. Please install it first: brew install qemu"
+        return 1
+    fi
+    
+    # Add to config
+    echo "$vm_name:qemu:$disk_path:$memory:$cpu_cores::configured:" >> "$VM_CONFIG_FILE"
+    
+    ai_response "✅ VM '$vm_name' created successfully!"
+    
+    ai_response "🚀 Now downloading Tails ISO and starting installation..."
+    download_tails_iso_ai "$vm_name"
+}
+
+create_qubes_vm_ai() {
+    ai_response "Great! I'll create a new Qubes OS VM for you. Let me ask a few questions:"
+    
+    echo -e "${YELLOW}What should I name this VM? (default: qubes):${NC}"
+    read -r vm_name
+    vm_name=${vm_name:-qubes}
+    
+    if get_vm_config "$vm_name" >/dev/null; then
+        ai_response "A VM named '$vm_name' already exists. Please choose a different name."
+        return 1
+    fi
+    
+    echo -e "${YELLOW}How much memory (MB)? (default: 8192):${NC}"
+    read -r memory
+    memory=${memory:-8192}
+    
+    echo -e "${YELLOW}How many CPU cores? (default: 4):${NC}"
+    read -r cpu_cores
+    cpu_cores=${cpu_cores:-4}
+    
+    ai_response "Perfect! I'm creating your Qubes OS VM with:"
+    echo -e "  • Name: $vm_name"
+    echo -e "  • Memory: ${memory}MB"
+    echo -e "  • CPU: $cpu_cores cores"
+    echo -e "  • Storage: 50GB (Qubes requires substantial storage)"
+    
+    # Create VM directory and disk
+    local vm_dir="$VM_CONFIG_DIR/vms/$vm_name"
+    local disk_path="$vm_dir/$vm_name.qcow2"
+    
+    mkdir -p "$vm_dir"
+    
+    ai_response "Creating virtual disk..."
+    if command -v qemu-img >/dev/null; then
+        qemu-img create -f qcow2 "$disk_path" 50G
+        ai_response "✅ Virtual disk created successfully!"
+    else
+        ai_response "⚠️  QEMU not found. Please install it first: brew install qemu"
+        return 1
+    fi
+    
+    # Add to config
+    echo "$vm_name:qemu:$disk_path:$memory:$cpu_cores::configured:" >> "$VM_CONFIG_FILE"
+    
+    ai_response "✅ VM '$vm_name' created successfully!"
+    
+    ai_response "🚀 Now downloading Qubes OS ISO and starting installation..."
+    download_qubes_iso_ai "$vm_name"
+}
+
 show_vm_types_ai() {
     ai_response "I can help you create these types of VMs:"
     echo ""
     echo -e "${BLUE}Available VM Types:${NC}"
     echo -e "  • ${GREEN}Ubuntu${NC} - Popular Linux distribution"
     echo -e "  • ${GREEN}Debian${NC} - Stable Linux distribution"
+    echo -e "  • ${GREEN}Kali Linux${NC} - Penetration testing and security auditing"
+    echo -e "  • ${GREEN}Parrot Security${NC} - Security, privacy and development platform"
+    echo -e "  • ${GREEN}Tails${NC} - Privacy-focused live operating system"
+    echo -e "  • ${GREEN}Qubes OS${NC} - Security-focused operating system"
     echo -e "  • ${GREEN}Windows${NC} - Microsoft Windows (you'll need an ISO)"
     echo -e "  • ${GREEN}CentOS${NC} - Enterprise Linux distribution"
     echo ""
-    echo -e "${YELLOW}Just tell me which one you'd like, for example: 'Create Ubuntu VM'${NC}"
+    echo -e "${YELLOW}Just tell me which one you'd like, for example: 'Create Kali VM' or 'Create Ubuntu VM'${NC}"
 }
 
 clone_vm_ai() {
@@ -502,6 +787,106 @@ download_ubuntu_iso_ai() {
     start_vm_ai "$vm_name"
 }
 
+download_kali_iso_ai() {
+    local vm_name="$1"
+    local iso_path="$VM_ISOS_DIR/kali-linux-2024.1-installer-amd64.iso"
+    
+    ai_response "I'll download the Kali Linux 2024.1 ISO for you. This might take a while..."
+    
+    if [ ! -f "$iso_path" ]; then
+        ai_response "Downloading Kali Linux ISO... ⏳"
+        if command -v wget >/dev/null; then
+            wget -O "$iso_path" "https://cdimage.kali.org/kali-2024.1/kali-linux-2024.1-installer-amd64.iso"
+        elif command -v curl >/dev/null; then
+            curl -L -o "$iso_path" "https://cdimage.kali.org/kali-2024.1/kali-linux-2024.1-installer-amd64.iso"
+        else
+            ai_response "❌ Neither wget nor curl found. Please install one of them."
+            return 1
+        fi
+    fi
+    
+    # Update VM config with ISO path
+    sed -i '' "s|^$vm_name:qemu:\([^:]*\):\([^:]*\):\([^:]*\):[^:]*:|$vm_name:qemu:\1:\2:\3:$iso_path:|" "$VM_CONFIG_FILE"
+    
+    ai_response "✅ Kali Linux ISO ready! Starting VM with installation media..."
+    start_vm_ai "$vm_name"
+}
+
+download_parrot_iso_ai() {
+    local vm_name="$1"
+    local iso_path="$VM_ISOS_DIR/Parrot-security-5.3_amd64.iso"
+    
+    ai_response "I'll download the Parrot Security 5.3 ISO for you. This might take a while..."
+    
+    if [ ! -f "$iso_path" ]; then
+        ai_response "Downloading Parrot Security ISO... ⏳"
+        if command -v wget >/dev/null; then
+            wget -O "$iso_path" "https://deb.parrot.sh/parrot/iso/5.3/Parrot-security-5.3_amd64.iso"
+        elif command -v curl >/dev/null; then
+            curl -L -o "$iso_path" "https://deb.parrot.sh/parrot/iso/5.3/Parrot-security-5.3_amd64.iso"
+        else
+            ai_response "❌ Neither wget nor curl found. Please install one of them."
+            return 1
+        fi
+    fi
+    
+    # Update VM config with ISO path
+    sed -i '' "s|^$vm_name:qemu:\([^:]*\):\([^:]*\):\([^:]*\):[^:]*:|$vm_name:qemu:\1:\2:\3:$iso_path:|" "$VM_CONFIG_FILE"
+    
+    ai_response "✅ Parrot Security ISO ready! Starting VM with installation media..."
+    start_vm_ai "$vm_name"
+}
+
+download_tails_iso_ai() {
+    local vm_name="$1"
+    local iso_path="$VM_ISOS_DIR/tails-amd64-5.19.1.iso"
+    
+    ai_response "I'll download the Tails 5.19.1 ISO for you. This might take a while..."
+    
+    if [ ! -f "$iso_path" ]; then
+        ai_response "Downloading Tails ISO... ⏳"
+        if command -v wget >/dev/null; then
+            wget -O "$iso_path" "https://download.tails.net/tails/stable/tails-amd64-5.19.1/tails-amd64-5.19.1.iso"
+        elif command -v curl >/dev/null; then
+            curl -L -o "$iso_path" "https://download.tails.net/tails/stable/tails-amd64-5.19.1/tails-amd64-5.19.1.iso"
+        else
+            ai_response "❌ Neither wget nor curl found. Please install one of them."
+            return 1
+        fi
+    fi
+    
+    # Update VM config with ISO path
+    sed -i '' "s|^$vm_name:qemu:\([^:]*\):\([^:]*\):\([^:]*\):[^:]*:|$vm_name:qemu:\1:\2:\3:$iso_path:|" "$VM_CONFIG_FILE"
+    
+    ai_response "✅ Tails ISO ready! Starting VM with installation media..."
+    start_vm_ai "$vm_name"
+}
+
+download_qubes_iso_ai() {
+    local vm_name="$1"
+    local iso_path="$VM_ISOS_DIR/Qubes-R4.2.0-x86_64.iso"
+    
+    ai_response "I'll download the Qubes OS R4.2.0 ISO for you. This might take a while..."
+    
+    if [ ! -f "$iso_path" ]; then
+        ai_response "Downloading Qubes OS ISO... ⏳"
+        if command -v wget >/dev/null; then
+            wget -O "$iso_path" "https://ftp.qubes-os.org/iso/Qubes-R4.2.0-x86_64.iso"
+        elif command -v curl >/dev/null; then
+            curl -L -o "$iso_path" "https://ftp.qubes-os.org/iso/Qubes-R4.2.0-x86_64.iso"
+        else
+            ai_response "❌ Neither wget nor curl found. Please install one of them."
+            return 1
+        fi
+    fi
+    
+    # Update VM config with ISO path
+    sed -i '' "s|^$vm_name:qemu:\([^:]*\):\([^:]*\):\([^:]*\):[^:]*:|$vm_name:qemu:\1:\2:\3:$iso_path:|" "$VM_CONFIG_FILE"
+    
+    ai_response "✅ Qubes OS ISO ready! Starting VM with installation media..."
+    start_vm_ai "$vm_name"
+}
+
 show_help_ai() {
     ai_response "Here's what I can help you with:"
     echo ""
@@ -515,6 +900,17 @@ show_help_ai() {
     echo -e "  • ${GREEN}\"Create a new Ubuntu VM\"${NC}"
     echo -e "  • ${GREEN}\"Install Debian\"${NC}"
     echo -e "  • ${GREEN}\"Make a Windows VM\"${NC}"
+    echo -e "  • ${GREEN}\"Create Kali VM\"${NC}"
+    echo -e "  • ${GREEN}\"Create Parrot VM\"${NC}"
+    echo -e "  • ${GREEN}\"Create Tails VM\"${NC}"
+    echo -e "  • ${GREEN}\"Create Qubes VM\"${NC}"
+    echo ""
+    echo -e "${BLUE}💻 VM Command Builder:${NC}"
+    echo -e "  • ${GREEN}\"Help me build a command to...\"${NC}"
+    echo -e "  • ${GREEN}\"Show VM commands\"${NC}"
+    echo -e "  • ${GREEN}\"What commands can I run?\"${NC}"
+    echo -e "  • ${GREEN}\"Build command for network scan\"${NC}"
+    echo -e "  • ${GREEN}\"Help with file operations\"${NC}"
     echo ""
     echo -e "${BLUE}📋 Other Commands:${NC}"
     echo -e "  • ${GREEN}\"Clone my VM\"${NC}"
@@ -582,6 +978,85 @@ show_system_info_ai() {
         echo -e "${GREEN}✅ VirtualBox: Available${NC}"
     else
         echo -e "${RED}❌ VirtualBox: Not installed${NC}"
+    fi
+}
+
+# Troubleshoot VM boot issues
+troubleshoot_vm_boot_ai() {
+    local vm_name="$1"
+    
+    ai_response "Let me help you troubleshoot the 'no bootable device' error!"
+    echo ""
+    
+    if [ -z "$vm_name" ]; then
+        echo -e "${YELLOW}Which VM are you having trouble with?${NC}"
+        read -r vm_name
+    fi
+    
+    local vm_config=$(get_vm_config "$vm_name")
+    
+    if [ -z "$vm_config" ]; then
+        ai_response "❌ VM '$vm_name' not found. Let me show you available VMs:"
+        list_vms_ai
+        return 1
+    fi
+    
+    local vm_path=$(echo "$vm_config" | cut -d: -f3)
+    local iso_path=$(echo "$vm_config" | cut -d: -f6)
+    
+    echo -e "${BLUE}🔍 Diagnostic Results:${NC}"
+    echo ""
+    
+    # Check if VM disk exists
+    if [ -f "$vm_path" ]; then
+        local disk_size=$(ls -lh "$vm_path" | awk '{print $5}')
+        echo -e "  ✅ VM disk found: $vm_path ($disk_size)"
+    else
+        echo -e "  ❌ VM disk missing: $vm_path"
+    fi
+    
+    # Check for ISO file
+    if [ -n "$iso_path" ] && [ -f "$iso_path" ]; then
+        local iso_size=$(ls -lh "$iso_path" | awk '{print $5}')
+        echo -e "  ✅ ISO file found: $iso_path ($iso_size)"
+    else
+        echo -e "  ❌ No ISO file attached or file missing"
+        if [ -n "$iso_path" ]; then
+            echo -e "      Expected: $iso_path"
+        fi
+    fi
+    
+    echo ""
+    echo -e "${BLUE}💡 Solutions:${NC}"
+    
+    if [ -z "$iso_path" ] || [ ! -f "$iso_path" ]; then
+        echo -e "  1. ${YELLOW}Download and attach an ISO file${NC}"
+        echo -e "     Example: 'Download Ubuntu ISO for $vm_name'"
+        echo ""
+        echo -e "  2. ${YELLOW}Manual ISO attachment${NC}"
+        echo -e "     Place your ISO in: $VM_ISOS_DIR/"
+        echo -e "     Then update VM config to point to it"
+    fi
+    
+    echo -e "  3. ${YELLOW}Start VM with ISO attached${NC}"
+    echo -e "     I can modify the start command to boot from ISO"
+    echo ""
+    
+    echo -e "${YELLOW}Would you like me to help you download an ISO for this VM? (y/n):${NC}"
+    read -r download_iso
+    
+    if [[ "$download_iso" =~ ^[Yy]$ ]]; then
+        case "$vm_name" in
+            *ubuntu*) download_ubuntu_iso_ai "$vm_name" ;;
+            *kali*) ai_response "I'll help you download Kali Linux ISO"; download_kali_iso_ai "$vm_name" ;;
+            *parrot*) ai_response "I'll help you download Parrot Security ISO"; download_parrot_iso_ai "$vm_name" ;;
+            *tails*) ai_response "I'll help you download Tails ISO"; download_tails_iso_ai "$vm_name" ;;
+            *qubes*) ai_response "I'll help you download Qubes OS ISO"; download_qubes_iso_ai "$vm_name" ;;
+            *) 
+                ai_response "I'll need you to manually download the appropriate ISO for $vm_name"
+                echo -e "Place it in: ${CYAN}$VM_ISOS_DIR/${NC}"
+                ;;
+        esac
     fi
 }
 
